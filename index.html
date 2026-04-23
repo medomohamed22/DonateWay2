@@ -22,7 +22,7 @@ body {
   padding: 30px;
   border-radius: 20px;
   text-align: center;
-  width: 300px;
+  width: 320px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 
@@ -54,7 +54,7 @@ button:hover {
 
 .status {
   margin-top: 15px;
-  color: green;
+  font-weight: bold;
 }
 </style>
 </head>
@@ -71,14 +71,33 @@ button:hover {
 <script>
 const Pi = window.Pi;
 
-// Initialize Pi SDK
 Pi.init({
   version: "2.0",
-  sandbox: false // مهم جدا عشان testnet
+  sandbox: false
 });
 
-// طلب الدفع (اشتراك)
-function subscribe() {
+// تسجيل دخول المستخدم
+async function authUser() {
+  try {
+    const scopes = ['username', 'payments'];
+    const user = await Pi.authenticate(scopes, function(payment) {
+      console.log("Incomplete payment found:", payment);
+    });
+    console.log("User:", user);
+    return user;
+  } catch (err) {
+    console.error(err);
+    document.getElementById("status").innerText = "Login failed ❌";
+  }
+}
+
+// زر الاشتراك
+async function subscribe() {
+
+  document.getElementById("status").innerText = "Processing...";
+
+  const user = await authUser();
+  if (!user) return;
 
   const paymentData = {
     amount: 1,
@@ -87,25 +106,22 @@ function subscribe() {
   };
 
   function onReadyForServerApproval(paymentId) {
-    console.log("Ready:", paymentId);
+    console.log("Approve:", paymentId);
 
-    // هنا المفروض تبعت paymentId للـ backend
-    // عشان تأكد العملية (لكن احنا هنعمل simulation)
-    setTimeout(() => {
-      onReadyForServerCompletion(paymentId);
-    }, 2000);
+    // ⚠️ هنا لازم backend حقيقي
+    document.getElementById("status").innerText = "Waiting for approval...";
   }
 
   function onReadyForServerCompletion(paymentId) {
-    console.log("Completed:", paymentId);
+    console.log("Complete:", paymentId);
     document.getElementById("status").innerText = "Payment Successful ✅";
   }
 
   function onCancel(paymentId) {
-    document.getElementById("status").innerText = "Payment Cancelled ❌";
+    document.getElementById("status").innerText = "Cancelled ❌";
   }
 
-  function onError(error, payment) {
+  function onError(error) {
     console.error(error);
     document.getElementById("status").innerText = "Error ❗";
   }
