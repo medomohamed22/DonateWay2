@@ -23,17 +23,6 @@ body {
   border-radius: 20px;
   text-align: center;
   width: 320px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-}
-
-h1 {
-  color: #6a11cb;
-}
-
-.price {
-  font-size: 28px;
-  margin: 20px 0;
-  color: #333;
 }
 
 button {
@@ -44,17 +33,10 @@ button {
   border-radius: 10px;
   width: 100%;
   font-size: 18px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-button:hover {
-  background: #4e0fa3;
 }
 
 .status {
   margin-top: 15px;
-  font-weight: bold;
 }
 </style>
 </head>
@@ -62,9 +44,9 @@ button:hover {
 <body>
 
 <div class="card">
-  <h1>Premium Plan</h1>
-  <div class="price">1 π / month</div>
-  <button onclick="subscribe()">Subscribe Now</button>
+  <h2>Premium Plan</h2>
+  <p>1 π / month</p>
+  <button onclick="subscribe()">Subscribe</button>
   <div class="status" id="status"></div>
 </div>
 
@@ -76,53 +58,51 @@ Pi.init({
   sandbox: false
 });
 
-// تسجيل دخول المستخدم
-async function authUser() {
-  try {
-    const scopes = ['username', 'payments'];
-    const user = await Pi.authenticate(scopes, function(payment) {
-      console.log("Incomplete payment found:", payment);
-    });
-    console.log("User:", user);
-    return user;
-  } catch (err) {
-    console.error(err);
-    document.getElementById("status").innerText = "Login failed ❌";
-  }
-}
-
-// زر الاشتراك
 async function subscribe() {
 
-  document.getElementById("status").innerText = "Processing...";
-
-  const user = await authUser();
-  if (!user) return;
+  const user = await Pi.authenticate(['username', 'payments']);
 
   const paymentData = {
     amount: 1,
-    memo: "Monthly Subscription",
+    memo: "Subscription",
     metadata: { plan: "premium" }
   };
 
   function onReadyForServerApproval(paymentId) {
-    console.log("Approve:", paymentId);
 
-    // ⚠️ هنا لازم backend حقيقي
-    document.getElementById("status").innerText = "Waiting for approval...";
+    document.getElementById("status").innerText = "Approving...";
+
+    fetch("http://localhost:3000/approve", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ paymentId })
+    });
   }
 
   function onReadyForServerCompletion(paymentId) {
-    console.log("Complete:", paymentId);
-    document.getElementById("status").innerText = "Payment Successful ✅";
+
+    document.getElementById("status").innerText = "Completing...";
+
+    fetch("http://localhost:3000/complete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ paymentId })
+    })
+    .then(() => {
+      document.getElementById("status").innerText = "Success ✅";
+    });
   }
 
-  function onCancel(paymentId) {
+  function onCancel() {
     document.getElementById("status").innerText = "Cancelled ❌";
   }
 
-  function onError(error) {
-    console.error(error);
+  function onError(err) {
+    console.error(err);
     document.getElementById("status").innerText = "Error ❗";
   }
 
